@@ -1,111 +1,162 @@
 /**
  * @file product.h
- * @brief Product structure and function declarations
- * @details Defines the Product data structure and operations for product management
- * @author PMS Team
- * @date 14/10/2025
+ * @brief Product module header - Core data structure and operations for products
+ * @author PMS Development Team - Member 1
+ * @date 2025
+ * 
+ * This module provides the fundamental Product data structure and all operations
+ * for managing individual products including creation, updates, and display.
  */
 
 #ifndef PRODUCT_H
 #define PRODUCT_H
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-
-/* ========================================================================
- * CONSTANTS AND MACROS
- * ======================================================================== */
-
-#define MAX_NAME_LENGTH 100
-#define MAX_DESCRIPTION_LENGTH 256
-
-/* ========================================================================
- * DATA STRUCTURES
- * ======================================================================== */
+#include <stdlib.h>
 
 /**
  * @struct Product
- * @brief Represents a product in the inventory system
+ * @brief Core product data structure
  * 
- * @var Product::id
- * Unique product identifier (SKU)
- * 
- * @var Product::name
- * Product name (max 100 characters)
- * 
- * @var Product::price
- * Product price (must be non-negative)
- * 
- * @var Product::quantity
- * Stock quantity (must be non-negative)
- * 
- * @var Product::description
- * Product description (max 256 characters)
+ * Represents a single product with all necessary attributes for inventory management.
+ * SKU (id) serves as unique identifier across the entire system.
  */
 typedef struct {
-    int id;
-    char name[MAX_NAME_LENGTH];
-    double price;
-    int quantity;
-    char description[MAX_DESCRIPTION_LENGTH];
+    int id;                     /**< SKU - Unique product identifier */
+    char name[100];             /**< Product name (max 99 chars + null terminator) */
+    double price;               /**< Unit price (must be >= 0) */
+    int quantity;               /**< Stock quantity (must be >= 0) */
+    char description[256];      /**< Product description (max 255 chars) */
 } Product;
 
-/* ========================================================================
- * FUNCTION PROTOTYPES
- * ======================================================================== */
+/* ========== PRODUCT CREATION & INITIALIZATION ========== */
 
 /**
- * @brief Creates and initializes a new product
- * @param id Product SKU (unique identifier)
- * @param name Product name
- * @param price Product price
- * @param quantity Stock quantity
- * @param description Product description
- * @return Initialized Product structure
+ * @brief Create and initialize a new product
+ * 
+ * Creates a product with full validation of input parameters.
+ * All string inputs are safely copied with bounds checking.
+ * 
+ * @param id Product SKU (must be positive)
+ * @param name Product name (must not be NULL or empty)
+ * @param price Unit price (must be >= 0)
+ * @param quantity Stock quantity (must be >= 0)
+ * @param description Product description (can be NULL for empty description)
+ * @return Product Initialized product structure
+ * 
+ * @note If validation fails, returns a product with id = -1
+ * 
+ * Example:
+ * @code
+ * Product p = Product_create(1001, "Laptop Dell XPS", 1299.99, 10, "High-end laptop");
+ * if (p.id == -1) {
+ *     printf("Failed to create product\n");
+ * }
+ * @endcode
  */
 Product Product_create(int id, const char* name, double price, int quantity, const char* description);
 
+/* ========== UPDATE OPERATIONS ========== */
+
 /**
- * @brief Updates product price
- * @param product Pointer to the product to update
+ * @brief Update product price
+ * 
+ * @param product Pointer to product structure (must not be NULL)
  * @param new_price New price value (must be >= 0)
- * @return 1 if successful, 0 if invalid price
+ * @return int 1 on success, 0 on failure
+ * 
+ * @note Validates that price is non-negative before updating
  */
 int Product_updatePrice(Product* product, double new_price);
 
 /**
- * @brief Updates product quantity
- * @param product Pointer to the product to update
+ * @brief Update product quantity
+ * 
+ * @param product Pointer to product structure (must not be NULL)
  * @param new_quantity New quantity value (must be >= 0)
- * @return 1 if successful, 0 if invalid quantity
+ * @return int 1 on success, 0 on failure
+ * 
+ * @note Validates that quantity is non-negative before updating
  */
 int Product_updateQuantity(Product* product, int new_quantity);
 
 /**
- * @brief Updates product name
- * @param product Pointer to the product to update
- * @param new_name New product name
+ * @brief Update product name
+ * 
+ * Safely updates product name with bounds checking and validation.
+ * 
+ * @param product Pointer to product structure (must not be NULL)
+ * @param new_name New name string (must not be NULL or empty)
+ * @return int 1 on success, 0 on failure
+ * 
+ * @note Name is truncated if longer than 99 characters
  */
-void Product_updateName(Product* product, const char* new_name);
+int Product_updateName(Product* product, const char* new_name);
 
 /**
- * @brief Updates product description
- * @param product Pointer to the product to update
- * @param new_description New description
+ * @brief Update product description
+ * 
+ * Safely updates product description with bounds checking.
+ * 
+ * @param product Pointer to product structure (must not be NULL)
+ * @param new_description New description string (can be NULL for empty)
+ * @return int 1 on success, 0 on failure
+ * 
+ * @note Description is truncated if longer than 255 characters
  */
-void Product_updateDescription(Product* product, const char* new_description);
+int Product_updateDescription(Product* product, const char* new_description);
+
+/* ========== DISPLAY OPERATIONS ========== */
 
 /**
- * @brief Prints product details to console
- * @param product Pointer to the product to print
+ * @brief Print detailed product information
+ * 
+ * Displays all product attributes in a formatted, readable layout.
+ * Suitable for detailed product views.
+ * 
+ * @param product Pointer to product structure (must not be NULL)
+ * 
+ * Example output:
+ * @code
+ * Product Details:
+ * ================
+ * SKU: 1001
+ * Name: Laptop Dell XPS
+ * Price: $1299.99
+ * Quantity: 10
+ * Description: High-end laptop
+ * @endcode
  */
 void Product_print(const Product* product);
 
 /**
- * @brief Prints product details in a formatted table row
- * @param product Pointer to the product to print
+ * @brief Print product as a table row
+ * 
+ * Displays product in a compact table format for listing multiple products.
+ * Uses fixed-width columns for alignment.
+ * 
+ * @param product Pointer to product structure (must not be NULL)
+ * 
+ * Example output:
+ * @code
+ * 1001  Laptop Dell XPS             $1299.99      10
+ * @endcode
  */
 void Product_printTableRow(const Product* product);
 
-#endif // PRODUCT_H
+/**
+ * @brief Print table header for product listings
+ * 
+ * Prints the header row matching the format of Product_printTableRow().
+ * Call this before printing multiple products in table format.
+ * 
+ * Example output:
+ * @code
+ * SKU   Name                        Price         Qty
+ * --------------------------------------------------------
+ * @endcode
+ */
+void Product_printTableHeader(void);
+
+#endif /* PRODUCT_H */
