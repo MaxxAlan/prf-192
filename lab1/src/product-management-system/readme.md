@@ -1,155 +1,366 @@
-# Hệ thống Quản lý Sản phẩm
+# 📁 Product Management System - Project Structure
 
-# (Product Management System)
+## Complete Directory Tree
 
-### 1\. Mục tiêu dự án
-
-Hệ thống quản lý sản phẩm đa dạng, dễ mở rộng, cho phép:
-
-Quản lý thông tin sản phẩm theo mã hàng (SKU), phân hàng, nhóm hàng.
-
-CRUD: Thêm, Xóa, Sửa, Xem sản phẩm.
-
-Lọc, tìm kiếm, thống kê sản phẩm theo nhóm, phân hàng, giá cả, số lượng.
-
-Lưu dữ liệu vào file nhị phân .dat để đảm bảo tốc độ, ổn định và dễ dùng cho nhiều người.
-
-Cấu trúc code modular, cleancode, dễ bảo trì và phát triển nhóm.
-
-### 2\. Cấu trúc dự án
-
-ProductManagement/
-
+```
+product-management-system/
 │
-
-├─ include/ # Header files
-
-│ ├─ product.h
-
-│ ├─ subgroup.h
-
-│ ├─ category.h
-
-│ └─ utils.h
-
+├── include/                    # Header files (.h)
+│   ├── product.h              # Product module interface
+│   ├── subgroup.h             # Subgroup module interface
+│   ├── category.h             # Category module interface
+│   └── utils.h                # Utilities & DataStore interface
 │
-
-├─ src/ # Source files
-
-│ ├─ product.c
-
-│ ├─ subgroup.c
-
-│ ├─ category.c
-
-│ └─ main.c
-
+├── src/                        # Source files (.c)
+│   ├── product.c              # Product implementation
+│   ├── subgroup.c             # Subgroup implementation
+│   ├── category.c             # Category implementation
+│   ├── utils.c                # Utilities implementation
+│   └── main.c                 # Main program & menu system
 │
-
-├─ data/ # File dữ liệu nhị phân
-
-│ └─ products.dat
-
+├── build/                      # Build output (created by Makefile)
+│   ├── obj/                   # Object files (.o)
+│   │   ├── product.o
+│   │   ├── subgroup.o
+│   │   ├── category.o
+│   │   ├── utils.o
+│   │   └── main.o
+│   └── pms                    # Final executable
 │
-
-├─ build/ # Binary output
-
+├── data/                       # Data storage (created at runtime)
+│   └── products.dat           # Binary data file
 │
+├── docs/                       # Documentation
+│   ├── architecture.md        # System architecture
+│   ├── api-reference.md       # API documentation
+│   └── user-guide.md          # User manual
+│
+├── tests/                      # Test files (optional)
+│   ├── test_product.c         # Product unit tests
+│   ├── test_subgroup.c        # Subgroup unit tests
+│   ├── test_category.c        # Category unit tests
+│   └── test_utils.c           # Utils unit tests
+│
+├── Makefile                    # Build system
+├── README.md                   # Project overview
+├── LICENSE                     # License file
+└── .gitignore                  # Git ignore rules
 
-└─ README.md
+```
 
-### 3\. Nguyên tắc code
+---
 
-Cleancode \& Modular
+## 📋 Directory Details
 
-Mỗi module có file .h và .c.
+### 1. **include/** - Header Files
 
-Hàm module luôn dùng prefix để tránh xung đột (Product\_, Subgroup\_, Category\_).
+```
+include/
+├── product.h      → Product struct & CRUD operations
+├── subgroup.h     → Subgroup struct & collection management
+├── category.h     → Category struct & hierarchical operations
+└── utils.h        → DataStore, file I/O, input validation
+```
 
-Tránh biến toàn cục
+**Purpose:**
 
-Dữ liệu được load từ file .dat vào struct và mảng/linked list.
+- Public API declarations
+- Type definitions
+- Function prototypes
+- Documentation (Doxygen comments)
 
-Tương tác với file .dat qua hàm wrapper
+**Dependencies:**
 
-Không đọc hoặc ghi trực tiếp ngoài module utils.
+```
+product.h    (no dependencies)
+    ↓
+subgroup.h   (includes product.h)
+    ↓
+category.h   (includes subgroup.h)
+    ↓
+utils.h      (includes category.h)
+```
 
-### 4\. Module \& Hàm chính
+---
 
-#### 4.1 Product Module
+### 2. **src/** - Source Files
 
-Product_create(Product \*p, int id, char\* name, double price, int quantity, char\* description)
+```
+src/
+├── product.c      → Implementation of product operations
+├── subgroup.c     → Implementation of subgroup operations
+├── category.c     → Implementation of category operations
+├── utils.c        → File I/O & validation implementation
+└── main.c         → Menu system & program entry point
+```
 
-Product_update(Product \*p, double price, int quantity)
+**Purpose:**
 
-Product_print(const Product \*p)
+- Function implementations
+- Private helper functions
+- Business logic
 
-#### 4.2 Subgroup Module
+**Compilation Order:**
 
-Subgroup_addProduct(Subgroup \*sg, Product p)
+1. product.c → product.o
+2. subgroup.c → subgroup.o
+3. category.c → category.o
+4. utils.c → utils.o
+5. main.c → main.o
+6. Link all → pms executable
 
-Subgroup_removeProduct(Subgroup \*sg, int productId)
+---
 
-Subgroup_findProductById(const Subgroup \*sg, int id)
+### 3. **build/** - Build Artifacts
 
-#### 4.3 Category Module
+```
+build/
+├── obj/           → Intermediate object files
+│   ├── product.o
+│   ├── subgroup.o
+│   ├── category.o
+│   ├── utils.o
+│   └── main.o
+└── pms            → Final executable
+```
 
-Category_addSubgroup(Category \*cat, Subgroup sg)
+**Purpose:**
 
-Category_findSubgroupByName(const Category \*cat, const char\* name)
+- Generated by Makefile
+- Cleaned with `make clean`
+- Not tracked by Git
 
-Category_print(const Category \*cat)
+**Created automatically by:**
 
-#### 4.4 Utils Module (File .dat)
+```bash
+make directories
+```
 
-loadData(const char\* filepath, Category \*categories, int \*category_count) → đọc dữ liệu nhị phân
+---
 
-saveData(const char\* filepath, const Category \*categories, int category_count) → ghi dữ liệu nhị phân
+### 4. **data/** - Runtime Data
 
-validateInput(...) → kiểm tra input người dùng
+```
+data/
+└── products.dat   → Binary storage file
+```
 
-### 5\. Phân nhiệm vụ cho 5 thành viên
+**Purpose:**
 
-Thành viên Module / Task chính
+- Persistent data storage
+- Created at first save
+- Auto-loaded on startup
 
-Mạnh 1 Product Module: CRUD, validate, print
+**File Format:**
 
-Phương Anh 2 Subgroup Module: add/remove/find product
+- Binary format for efficiency
+- Contains serialized DataStore
 
-Khoa 3 Category Module: add/find subgroup, print
+---
 
-Tuấn Anh 4 Utils Module: load/save .dat, input validation
+### 5. **docs/** - Documentation
 
-Phương 5 Main \& Integration: menu, console, kết nối module
+```
+docs/
+├── architecture.md     → System design, data flow
+├── api-reference.md    → Function reference
+└── user-guide.md       → How to use the system
+```
 
-### 6\. Quy trình làm việc
+**Purpose:**
 
-Mỗi thành viên làm trên branch riêng.
+- Technical documentation
+- User manuals
+- Development guides
 
-Commit chỉ module riêng, tránh merge trực tiếp main.
+---
 
-Trước khi merge: compile + test unit module.
+### 6. **tests/** - Test Suite (Optional)
 
-Dữ liệu test dùng data/products.dat để đồng bộ.
+```
+tests/
+├── test_product.c      → Product module tests
+├── test_subgroup.c     → Subgroup module tests
+├── test_category.c     → Category module tests
+└── test_utils.c        → Utils module tests
+```
 
-### 7\. Hướng dẫn build \& chạy
+**Purpose:**
 
-\# Biên dịch
+- Unit tests
+- Integration tests
+- Regression testing
 
-gcc src/\*.c -Iinclude -o build/ProductManagement
+---
 
-\# Chạy
+## 🔨 Quick Setup Commands
 
-./build/ProductManagement
+### Initial Setup
 
-Lưu ý: products.dat sẽ được tạo tự động nếu chưa có.
+```bash
+# Create project structure
+mkdir -p product-management-system/{include,src,build/obj,data,docs,tests}
+cd product-management-system
 
-###
+# Create files
+touch include/{product,subgroup,category,utils}.h
+touch src/{product,subgroup,category,utils,main}.c
+touch Makefile README.md .gitignore
+```
 
-### 8\. Lợi ích khi dùng .dat
+### Build Commands
 
-Nhanh và ổn định: đọc/ghi trực tiếp struct, không parse text.
+```bash
+make              # Build everything
+make clean        # Remove build artifacts
+make run          # Build and run
+make help         # Show available targets
+```
 
-Dễ sử dụng nhiều người: tránh lỗi format, giữ dữ liệu đồng bộ.
+### File Operations
 
-Sẵn sàng mở rộng: thêm nhóm, phân hàng, sản phẩm mới mà không phá cấu trúc.
+```bash
+# View structure
+tree -L 2         # On Linux/Mac
+dir /s            # On Windows
+
+# Count lines of code
+find . -name "*.c" -o -name "*.h" | xargs wc -l
+```
+
+---
+
+## 📊 File Size Estimates
+
+| Directory | Files | Approx Size | Purpose          |
+| --------- | ----- | ----------- | ---------------- |
+| include/  | 4     | ~12 KB      | Headers          |
+| src/      | 5     | ~40 KB      | Source code      |
+| build/    | 6     | ~200 KB     | Compiled objects |
+| data/     | 1     | Variable    | Runtime data     |
+| docs/     | 3     | ~20 KB      | Documentation    |
+| tests/    | 4     | ~15 KB      | Test code        |
+
+**Total Project Size:** ~300 KB (excluding build artifacts)
+
+---
+
+## 🔗 Module Dependencies Graph
+
+```
+main.c
+  └── utils.h
+        └── category.h
+              └── subgroup.h
+                    └── product.h
+```
+
+**Compilation Flow:**
+
+```
+product.h ──→ product.c ──→ product.o ──┐
+                                        │
+subgroup.h ─→ subgroup.c ─→ subgroup.o ─┤
+                                        │
+category.h ─→ category.c ─→ category.o ─┼─→ Linker ─→ pms
+                                        │
+utils.h ────→ utils.c ────→ utils.o ────┤
+                                        │
+               main.c ────→ main.o ─────┘
+```
+
+---
+
+## 📝 .gitignore Contents
+
+```gitignore
+# Build artifacts
+build/
+*.o
+*.out
+pms
+
+# Data files
+data/products.dat
+*.dat
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+```
+
+---
+
+## 🚀 Typical Workflow
+
+### Development Cycle
+
+```bash
+1. Edit source files in src/
+2. Update headers in include/ if needed
+3. Run: make clean && make
+4. Test: ./build/pms
+5. Commit changes: git add . && git commit
+```
+
+### Adding New Module
+
+```bash
+1. Create include/newmodule.h
+2. Create src/newmodule.c
+3. Update Makefile to include new files
+4. Update dependencies in other modules
+5. Rebuild: make clean && make
+```
+
+---
+
+## 📦 Distribution Structure
+
+For release, package:
+
+```
+pms-v1.0/
+├── pms                # Executable
+├── README.md          # Quick start
+├── LICENSE            # Terms
+└── docs/              # User documentation
+    └── user-guide.md
+```
+
+**Exclude from distribution:**
+
+- src/ (source code - optional)
+- include/ (headers - optional)
+- build/obj/ (object files)
+- .git/ (version control)
+
+---
+
+## 💡 Best Practices
+
+1. **Header Files (include/)**: Only public API
+2. **Source Files (src/)**: Implementation details
+3. **Build Directory**: Never commit to Git
+4. **Data Directory**: Add to .gitignore
+5. **Documentation**: Keep synchronized with code
+
+---
+
+**Next Steps:**
+
+- Generate Makefile for this structure
+- Create .gitignore file
+- Setup initial README.md
+- Start implementing modules
