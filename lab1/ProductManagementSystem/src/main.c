@@ -1,9 +1,14 @@
 /**
  * @file main.c
- * @brief Main logic app for Product Management System
+ * @brief Main logic app for Product Management System (FIXED)
  * @author PMS Team3, PRF192. 
  * @date 24-10-2025
  * @compatible Dev-C++ 6.3, TDM-GCC 9.2.0, C11
+ * 
+ * FIXES:
+ * - Better error messages for type mismatches
+ * - Input validation with user-friendly prompts
+ * - Retry mechanism for invalid inputs
  */
 
 #include "../include/utils.h"
@@ -57,12 +62,11 @@ int main(void) {
     UINT originalOutputCP = GetConsoleOutputCP();
     
     // Set console to UTF-8 mode
-    SetConsoleCP(65001);         // Sets input code page to UTF-8
-    SetConsoleOutputCP(65001);   // Sets output code page to UTF-8
+    SetConsoleCP(65001);
+    SetConsoleOutputCP(65001);
     
     DataStore store = datastore_init();
     
-    // Create data directory if needed (manual step for user)
     printf("Initializing Product Management System...\n");
     printf("Please ensure 'data' directory exists in the project folder.\n\n");
     
@@ -131,12 +135,12 @@ int main(void) {
 }
 
 void display_main_menu(void) {
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf  ("║        PRODUCT MANAGEMENT SYSTEM v1.0                      ║\n");
     printf  ("║        Run with Win11 & Dev-C++ 6.3                        ║\n");
     printf  ("║        -> Group 3-PRF192:Lab1                              ║\n");
     printf  ("║    Member: Manh, Khoa, Tuan Anh, Phuong Anh, Thu Phuong    ║\n");
-    printf  ("╚════════════════════════════════════════════════════════════╝\n\n");
+    printf  ("╚══════════════════════════════════════════════════════════╝\n\n");
     printf("  [1] Category Management\n");
     printf("  [2] Subgroup Management\n");
     printf("  [3] Product Management\n");
@@ -144,7 +148,7 @@ void display_main_menu(void) {
     printf("  [5] Statistics & Reports\n");
     printf("  [6] View All Data\n");
     printf("  [0] Save & Exit\n");
-    printf("\n════════════════════════════════════════════════════════════\n");
+    printf("\n══════════════════════════════════════════════════════════\n");
 }
 
 // ============================================================================
@@ -157,15 +161,15 @@ void category_management_menu(DataStore* store) {
     
     while (!back) {
         clear_screen();
-        printf("\n╔════════════════════════════════════════════════════════════╗\n");
+        printf("\n╔══════════════════════════════════════════════════════════╗\n");
         printf  ("║                   CATEGORY MANAGEMENT                      ║\n");
-        printf  ("╚════════════════════════════════════════════════════════════╝\n\n");
+        printf  ("╚══════════════════════════════════════════════════════════╝\n\n");
         printf("  [1] Add Category\n");
         printf("  [2] Edit Category\n");
         printf("  [3] Delete Category\n");
         printf("  [4] List All Categories\n");
         printf("  [0] Back to Main Menu\n");
-        printf("\n════════════════════════════════════════════════════════════\n");
+        printf("\n══════════════════════════════════════════════════════════\n");
         
         if (!safe_input_int("Enter your choice: ", &choice)) {
             printf("Invalid input. Please try again.\n");
@@ -188,9 +192,9 @@ void category_management_menu(DataStore* store) {
 
 void add_category(DataStore* store) {
     clear_screen();
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf  ("║                    ADD NEW CATEGORY                        ║\n");
-    printf  ("╚════════════════════════════════════════════════════════════╝\n\n");
+    printf  ("╚══════════════════════════════════════════════════════════╝\n\n");
     
     char name[50], description[200];
     
@@ -227,9 +231,9 @@ void add_category(DataStore* store) {
 
 void edit_category(DataStore* store) {
     clear_screen();
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf("║                       EDIT CATEGORY                        ║\n");
-    printf("╚════════════════════════════════════════════════════════════╝\n\n");
+    printf("╚══════════════════════════════════════════════════════════╝\n\n");
     
     int id;
     if (!safe_input_int("Enter Category ID to edit: ", &id)) {
@@ -269,9 +273,9 @@ void edit_category(DataStore* store) {
 
 void delete_category(DataStore* store) {
     clear_screen();
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf("║                      DELETE CATEGORY                       ║\n");
-    printf("╚════════════════════════════════════════════════════════════╝\n\n");
+    printf("╚══════════════════════════════════════════════════════════╝\n\n");
     
     int id;
     if (!safe_input_int("Enter Category ID to delete: ", &id)) {
@@ -319,9 +323,9 @@ void delete_category(DataStore* store) {
 
 void list_categories(DataStore* store) {
     clear_screen();
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf("║                       ALL CATEGORIES                       ║\n");
-    printf("╚════════════════════════════════════════════════════════════╝\n\n");
+    printf("╚══════════════════════════════════════════════════════════╝\n\n");
     
     if (store->category_count == 0) {
         printf("  No categories found.\n\n");
@@ -336,7 +340,7 @@ void list_categories(DataStore* store) {
         category_display_table_row(&store->categories[i]);
     }
     
-    printf("  └────────┴────────────────────────────────────────────────┴───────────┘\n\n");
+    printf("  └────────┴──────────────────────────────────────────────────┴───────────┘\n\n");
     pause_screen();
 }
 
@@ -350,15 +354,15 @@ void subgroup_management_menu(DataStore* store) {
     
     while (!back) {
         clear_screen();
-        printf("\n╔════════════════════════════════════════════════════════════╗\n");
+        printf("\n╔══════════════════════════════════════════════════════════╗\n");
         printf("║                    SUBGROUP MANAGEMENT                     ║\n");
-        printf("╚════════════════════════════════════════════════════════════╝\n\n");
+        printf("╚══════════════════════════════════════════════════════════╝\n\n");
         printf("  [1] Add Subgroup\n");
         printf("  [2] Edit Subgroup\n");
         printf("  [3] Delete Subgroup\n");
         printf("  [4] List All Subgroups\n");
         printf("  [0] Back to Main Menu\n");
-        printf("\n════════════════════════════════════════════════════════════\n");
+        printf("\n══════════════════════════════════════════════════════════\n");
         
         if (!safe_input_int("Enter your choice: ", &choice)) {
             printf("Invalid input. Please try again.\n");
@@ -381,9 +385,9 @@ void subgroup_management_menu(DataStore* store) {
 
 void add_subgroup(DataStore* store) {
     clear_screen();
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf("║                     ADD NEW SUBGROUP                       ║\n");
-    printf("╚════════════════════════════════════════════════════════════╝\n\n");
+    printf("╚══════════════════════════════════════════════════════════╝\n\n");
     
     if (store->category_count == 0) {
         printf("No categories available. Please create a category first.\n");
@@ -391,13 +395,12 @@ void add_subgroup(DataStore* store) {
         return;
     }
     
-    // Show categories
     printf("Available Categories:\n");
     category_display_table_header();
     for (int i = 0; i < store->category_count; i++) {
         category_display_table_row(&store->categories[i]);
     }
-    printf("  └────────┴────────────────────────────────────────────────┴───────────┘\n\n");
+    printf("  └────────┴──────────────────────────────────────────────────┴───────────┘\n\n");
     
     int category_id;
     if (!safe_input_int("Select Category ID: ", &category_id)) {
@@ -449,9 +452,9 @@ void add_subgroup(DataStore* store) {
 
 void edit_subgroup(DataStore* store) {
     clear_screen();
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf("║                     EDIT SUBGROUP                          ║\n");
-    printf("╚════════════════════════════════════════════════════════════╝\n\n");
+    printf("╚══════════════════════════════════════════════════════════╝\n\n");
     
     int id;
     if (!safe_input_int("Enter Subgroup ID to edit: ", &id)) {
@@ -492,9 +495,9 @@ void edit_subgroup(DataStore* store) {
 
 void delete_subgroup(DataStore* store) {
     clear_screen();
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf("║                      DELETE SUBGROUP                       ║\n");
-    printf("╚════════════════════════════════════════════════════════════╝\n\n");
+    printf("╚══════════════════════════════════════════════════════════╝\n\n");
     
     int id;
     if (!safe_input_int("Enter Subgroup ID to delete: ", &id)) {
@@ -545,9 +548,9 @@ void delete_subgroup(DataStore* store) {
 
 void list_subgroups(DataStore* store) {
     clear_screen();
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf("║                       ALL SUBGROUPS                        ║\n");
-    printf("╚════════════════════════════════════════════════════════════╝\n\n");
+    printf("╚══════════════════════════════════════════════════════════╝\n\n");
     
     int total = 0;
     for (int i = 0; i < store->category_count; i++) {
@@ -569,7 +572,7 @@ void list_subgroups(DataStore* store) {
         }
     }
     
-    printf("  └────────┴──────────────┴──────────────────────────────────────┴──────────┘\n\n");
+    printf("  └────────┴──────────────┴──────────────────────────────────────────┴──────────┘\n\n");
     pause_screen();
 }
 
@@ -583,15 +586,15 @@ void product_management_menu(DataStore* store) {
     
     while (!back) {
         clear_screen();
-        printf("\n╔════════════════════════════════════════════════════════════╗\n");
+        printf("\n╔══════════════════════════════════════════════════════════╗\n");
         printf("║                       PRODUCT MANAGEMENT                    ║\n");
-        printf("╚════════════════════════════════════════════════════════════╝\n\n");
+        printf("╚══════════════════════════════════════════════════════════╝\n\n");
         printf("  [1] Add Product\n");
         printf("  [2] Edit Product\n");
         printf("  [3] Delete Product\n");
         printf("  [4] List All Products\n");
         printf("  [0] Back to Main Menu\n");
-        printf("\n════════════════════════════════════════════════════════════\n");
+        printf("\n══════════════════════════════════════════════════════════\n");
         
         if (!safe_input_int("Enter your choice: ", &choice)) {
             printf("Invalid input. Please try again.\n");
@@ -612,13 +615,16 @@ void product_management_menu(DataStore* store) {
     }
 }
 
+/**
+ * ✅ FIXED: Better error messages and input validation
+ */
 void add_product(DataStore* store) {
     clear_screen();
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf("║                       ADD NEW PRODUCT                       ║\n");
-    printf("╚════════════════════════════════════════════════════════════╝\n\n");
+    printf("╚══════════════════════════════════════════════════════════╝\n\n");
     
-    // Show subgroups
+    // Check if subgroups exist
     int total_subgroups = 0;
     for (int i = 0; i < store->category_count; i++) {
         total_subgroups += store->categories[i].subgroup_count;
@@ -637,7 +643,7 @@ void add_product(DataStore* store) {
             subgroup_display_table_row(&store->categories[i].subgroups[j]);
         }
     }
-    printf("  └────────┴──────────────┴──────────────────────────────────────┴──────────┘\n\n");
+    printf("  └────────┴──────────────┴──────────────────────────────────────────┴──────────┘\n\n");
     
     int subgroup_id;
     if (!safe_input_int("Select Subgroup ID: ", &subgroup_id)) {
@@ -673,14 +679,19 @@ void add_product(DataStore* store) {
         description[0] = '\0';
     }
     
-    if (!safe_input_float("Price: ", &price) || price < 0) {
-        printf("Error: Invalid price.\n");
+    // ✅ FIX: Better error message for price
+    printf("Price (example: 20000 or 99.99): ");
+    if (!safe_input_float("", &price) || price < 0) {
+        printf("\n✗ Error: Invalid price. Please enter a valid number (e.g., 20000 or 99.99)\n");
         pause_screen();
         return;
     }
     
-    if (!safe_input_int("Quantity: ", &quantity) || quantity < 0) {
-        printf("Error: Invalid quantity.\n");
+    // ✅ FIX: Better error message for quantity
+    printf("Quantity (must be whole number, e.g., 5): ");
+    if (!safe_input_int("", &quantity) || quantity < 0) {
+        printf("\n✗ Error: Invalid quantity. Please enter a whole number (e.g., 5 not 5.0)\n");
+        printf("   Hint: Quantity must be an integer without decimal point.\n");
         pause_screen();
         return;
     }
@@ -702,9 +713,9 @@ void add_product(DataStore* store) {
 
 void edit_product(DataStore* store) {
     clear_screen();
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf("║                       EDIT PRODUCT                          ║\n");
-    printf("╚════════════════════════════════════════════════════════════╝\n\n");
+    printf("╚══════════════════════════════════════════════════════════╝\n\n");
     
     int id;
     if (!safe_input_int("Enter Product ID to edit: ", &id)) {
@@ -741,12 +752,12 @@ void edit_product(DataStore* store) {
         product_update_description(product, buffer);
     }
     
-    printf("New Price (current: %.2f): ", product->price);
+    printf("New Price (current: %.2f, press Enter to skip): ", product->price);
     if (safe_input_float("", &price) && price >= 0) {
         product_update_price(product, price);
     }
     
-    printf("New Quantity (current: %d): ", product->quantity);
+    printf("New Quantity (current: %d, press Enter to skip): ", product->quantity);
     if (safe_input_int("", &quantity) && quantity >= 0) {
         product_update_quantity(product, quantity);
     }
@@ -759,9 +770,9 @@ void edit_product(DataStore* store) {
 
 void delete_product(DataStore* store) {
     clear_screen();
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf("║                       DELETE PRODUCT                        ║\n");
-    printf("╚════════════════════════════════════════════════════════════╝\n\n");
+    printf("╚══════════════════════════════════════════════════════════╝\n\n");
     
     int id;
     if (!safe_input_int("Enter Product ID to delete: ", &id)) {
@@ -804,9 +815,9 @@ void delete_product(DataStore* store) {
 
 void list_products(DataStore* store) {
     clear_screen();
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf("║                       ALL PRODUCTS                          ║\n");
-    printf("╚════════════════════════════════════════════════════════════╝\n\n");
+    printf("╚══════════════════════════════════════════════════════════╝\n\n");
     
     Statistics stats = datastore_get_statistics(store);
     
@@ -827,7 +838,7 @@ void list_products(DataStore* store) {
         }
     }
     
-    printf("  ────────────────────────────────────────────────────────────────────────────────\n\n");
+    printf("  ────────────────────────────────────────────────────────────────────────────\n\n");
     pause_screen();
 }
 
@@ -841,14 +852,14 @@ void search_menu(DataStore* store) {
     
     while (!back) {
         clear_screen();
-        printf("\n╔════════════════════════════════════════════════════════════╗\n");
+        printf("\n╔══════════════════════════════════════════════════════════╗\n");
         printf("║                       SEARCH & FILTER                       ║\n");
-        printf("╚════════════════════════════════════════════════════════════╝\n\n");
+        printf("╚══════════════════════════════════════════════════════════╝\n\n");
         printf("  [1] Search by Name\n");
         printf("  [2] Search by Price Range\n");
         printf("  [3] Search by Quantity Range\n");
         printf("  [0] Back to Main Menu\n");
-        printf("\n════════════════════════════════════════════════════════════\n");
+        printf("\n══════════════════════════════════════════════════════════\n");
         
         if (!safe_input_int("Enter your choice: ", &choice)) {
             printf("Invalid input. Please try again.\n");
@@ -870,9 +881,9 @@ void search_menu(DataStore* store) {
 
 void search_by_name(DataStore* store) {
     clear_screen();
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf("║                       SEARCH BY NAME                       ║\n");
-    printf("╚════════════════════════════════════════════════════════════╝\n\n");
+    printf("╚══════════════════════════════════════════════════════════╝\n\n");
     
     char name[100];
     if (!safe_input_string("Enter product name (partial match): ", name, sizeof(name))) {
@@ -890,7 +901,7 @@ void search_by_name(DataStore* store) {
         for (int i = 0; i < result.count; i++) {
             product_display_table_row(&result.products[i]);
         }
-        printf("  ────────────────────────────────────────────────────────────────────────────────\n");
+        printf("  ────────────────────────────────────────────────────────────────────────────\n");
     }
     
     search_result_free(&result);
@@ -899,9 +910,9 @@ void search_by_name(DataStore* store) {
 
 void search_by_price(DataStore* store) {
     clear_screen();
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf("║                       SEARCH BY PRICE RANGE                ║\n");
-    printf("╚════════════════════════════════════════════════════════════╝\n\n");
+    printf("╚══════════════════════════════════════════════════════════╝\n\n");
     
     float min_price, max_price;
     
@@ -926,7 +937,7 @@ void search_by_price(DataStore* store) {
         for (int i = 0; i < result.count; i++) {
             product_display_table_row(&result.products[i]);
         }
-        printf("  ────────────────────────────────────────────────────────────────────────────────\n");
+        printf("  ────────────────────────────────────────────────────────────────────────────\n");
     }
     
     search_result_free(&result);
@@ -935,9 +946,9 @@ void search_by_price(DataStore* store) {
 
 void search_by_quantity(DataStore* store) {
     clear_screen();
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf("║                       SEARCH BY QUANTITY RANGE            ║\n");
-    printf("╚════════════════════════════════════════════════════════════╝\n\n");
+    printf("╚══════════════════════════════════════════════════════════╝\n\n");
     
     int min_qty, max_qty;
     
@@ -962,7 +973,7 @@ void search_by_quantity(DataStore* store) {
         for (int i = 0; i < result.count; i++) {
             product_display_table_row(&result.products[i]);
         }
-        printf("  ────────────────────────────────────────────────────────────────────────────────\n");
+        printf("  ────────────────────────────────────────────────────────────────────────────\n");
     }
     
     search_result_free(&result);
@@ -975,22 +986,22 @@ void search_by_quantity(DataStore* store) {
 
 void statistics_menu(DataStore* store) {
     clear_screen();
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf("║                       STATISTICS & REPORTS                ║\n");
-    printf("╚════════════════════════════════════════════════════════════╝\n\n");
+    printf("╚══════════════════════════════════════════════════════════╝\n\n");
     
     Statistics stats = datastore_get_statistics(store);
     
-    printf("  ┌──────────────────────────────────────────────────────┐\n");
+    printf("  ┌────────────────────────────────────────────────────────┐\n");
     printf("  │ SYSTEM STATISTICS                                    │\n");
-    printf("  ├──────────────────────────────────────────────────────┤\n");
+    printf("  ├────────────────────────────────────────────────────────┤\n");
     printf("  │ Total Categories:    %-10d                     │\n", stats.total_categories);
     printf("  │ Total Subgroups:     %-10d                     │\n", stats.total_subgroups);
     printf("  │ Total Products:      %-10d                     │\n", stats.total_products);
     printf("  │ Total Inventory:     %-10d units               │\n", stats.total_quantity);
     printf("  │ Total Value:         $%-10.2f                  │\n", stats.total_value);
     printf("  │ Average Price:       $%-10.2f                  │\n", stats.average_price);
-    printf("  └──────────────────────────────────────────────────────┘\n\n");
+    printf("  └────────────────────────────────────────────────────────┘\n\n");
     
     pause_screen();
 }
