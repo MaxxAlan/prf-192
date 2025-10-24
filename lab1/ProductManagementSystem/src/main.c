@@ -1,8 +1,8 @@
 /**
  * @file main.c
- * @brief Main application entry point for Product Management System
- * @author PMS Team
- * @date 2025
+ * @brief Main logic app for Product Management System
+ * @author PMS Team3, PRF192. 
+ * @date 24-10-2025
  * @compatible Dev-C++ 6.3, TDM-GCC 9.2.0, C11
  */
 
@@ -135,7 +135,7 @@ void display_main_menu(void) {
     printf  ("║        PRODUCT MANAGEMENT SYSTEM v1.0                      ║\n");
     printf  ("║        Run with Win11 & Dev-C++ 6.3                        ║\n");
     printf  ("║        -> Group 3-PRF192:Lab1                              ║\n");
-    printf  ("║        Member: Manh, Khoa, Tuan Anh, Phuong Anh, Thu Phuong║\n");
+    printf  ("║    Member: Manh, Khoa, Tuan Anh, Phuong Anh, Thu Phuong    ║\n");
     printf  ("╚════════════════════════════════════════════════════════════╝\n\n");
     printf("  [1] Category Management\n");
     printf("  [2] Subgroup Management\n");

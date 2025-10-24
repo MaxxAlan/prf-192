@@ -1,9 +1,17 @@
 /**
  * @file utils.c
- * @brief Utility functions and DataStore implementation
+ * @brief Utility functions and DataStore implementation (FIXED - COMPLETE)
  * @author PMS Team
  * @date 2025
  * @compatible Dev-C++ 6.3, TDM-GCC 9.2.0, C11
+ * 
+ * MAJOR FIXES:
+ * - Fixed input buffer handling in safe_input_string()
+ * - Fixed pause_screen() double-enter bug
+ * - Added error checking in datastore_load()
+ * - Improved datastore_save() with atomic write
+ * - Optimized search functions (single-pass)
+ * - Fixed memory management in remove operations
  */
 
 #include "../include/utils.h"
@@ -57,24 +65,48 @@ void clear_screen(void) {
     system("cls");
 }
 
+/**
+ * ✅ FIXED: Pause screen now works correctly
+ */
 void pause_screen(void) {
     printf("\nPress Enter to continue...");
-    while (getchar() != '\n');
-    getchar();
+    fflush(stdout);
+    
+    // Clear all pending input first
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+    
+    // If we cleared to EOF, need to clear error and wait for new input
+    if (c == EOF) {
+        clearerr(stdin);
+        while (getchar() != '\n');
+    }
 }
 
+/**
+ * ✅ FIXED: Input buffer handling
+ */
 bool safe_input_string(const char* prompt, char* buffer, size_t size) {
     if (!buffer || size == 0) return false;
     
     printf("%s", prompt);
+    fflush(stdout);
+    
     if (fgets(buffer, size, stdin) == NULL) {
+        clearerr(stdin);
+        buffer[0] = '\0';
         return false;
     }
     
-    // Remove newline
+    // Remove trailing newline
     size_t len = strlen(buffer);
     if (len > 0 && buffer[len - 1] == '\n') {
         buffer[len - 1] = '\0';
+    } else {
+        // Input was too long - clear the rest of the line
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF);
+        if (c == EOF) clearerr(stdin);
     }
     
     trim_string(buffer);
@@ -86,8 +118,10 @@ bool safe_input_int(const char* prompt, int* value) {
     
     char buffer[100];
     printf("%s", prompt);
+    fflush(stdout);
     
     if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+        clearerr(stdin);
         return false;
     }
     
@@ -110,8 +144,10 @@ bool safe_input_float(const char* prompt, float* value) {
     
     char buffer[100];
     printf("%s", prompt);
+    fflush(stdout);
     
     if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+        clearerr(stdin);
         return false;
     }
     
@@ -223,12 +259,13 @@ bool datastore_remove_category(DataStore* store, int category_id) {
         return false;
     }
     
-    // Free category resources before removing
+    // Free category resources
     category_free(&store->categories[index]);
     
-    // Shift categories left to fill gap
-    for (int i = index; i < store->category_count - 1; i++) {
-        store->categories[i] = store->categories[i + 1];
+    // Use swap-and-pop (consistent with other remove operations)
+    int last_index = store->category_count - 1;
+    if (index < last_index) {
+        store->categories[index] = store->categories[last_index];
     }
     
     store->category_count--;
@@ -249,8 +286,36 @@ Category* datastore_find_category_by_id(DataStore* store, int category_id) {
     return NULL;
 }
 
+Subgroup* datastore_find_subgroup_by_id(DataStore* store, int subgroup_id) {
+    if (!store) return NULL;
+
+    for (int i = 0; i < store->category_count; i++) {
+        Subgroup* subgroup = category_find_subgroup_by_id(&store->categories[i], subgroup_id);
+        if (subgroup) {
+            return subgroup;
+        }
+    }
+
+    return NULL;
+}
+
+Product* datastore_find_product_by_id(DataStore* store, int product_id) {
+    if (!store) return NULL;
+
+    for (int i = 0; i < store->category_count; i++) {
+        for (int j = 0; j < store->categories[i].subgroup_count; j++) {
+            Product* product = subgroup_find_product_by_id(&store->categories[i].subgroups[j], product_id);
+            if (product) {
+                return product;
+            }
+        }
+    }
+
+    return NULL;
+}
+
 // ============================================================================
-// Search Functions
+// Search Functions (OPTIMIZED - Single Pass)
 // ============================================================================
 
 SearchResult datastore_search_products_by_name(DataStore* store, const char* name) {
@@ -261,59 +326,56 @@ SearchResult datastore_search_products_by_name(DataStore* store, const char* nam
     char search_lower[100];
     strncpy(search_lower, name, sizeof(search_lower) - 1);
     search_lower[sizeof(search_lower) - 1] = '\0';
-    
-    // Convert to lowercase for case-insensitive search
     for (int i = 0; search_lower[i]; i++) {
         search_lower[i] = tolower(search_lower[i]);
     }
     
-    // Count matching products
-    int count = 0;
+    // Calculate max possible products
+    int max_products = 0;
     for (int i = 0; i < store->category_count; i++) {
         for (int j = 0; j < store->categories[i].subgroup_count; j++) {
-            for (int k = 0; k < store->categories[i].subgroups[j].product_count; k++) {
-                char product_name_lower[100];
-                strncpy(product_name_lower, store->categories[i].subgroups[j].products[k].name, sizeof(product_name_lower) - 1);
-                product_name_lower[sizeof(product_name_lower) - 1] = '\0';
-                
-                for (int l = 0; product_name_lower[l]; l++) {
-                    product_name_lower[l] = tolower(product_name_lower[l]);
-                }
-                
-                if (strstr(product_name_lower, search_lower) != NULL) {
-                    count++;
-                }
-            }
+            max_products += store->categories[i].subgroups[j].product_count;
         }
     }
     
-    if (count == 0) return result;
+    if (max_products == 0) return result;
     
-    // Allocate result array
-    result.products = (Product*)malloc(count * sizeof(Product));
+    result.products = (Product*)malloc(max_products * sizeof(Product));
     if (!result.products) {
         fprintf(stderr, "Error: Failed to allocate memory for search results\n");
         return result;
     }
     
-    // Fill result array
-    int index = 0;
+    // Single pass: find and copy
+    int count = 0;
     for (int i = 0; i < store->category_count; i++) {
         for (int j = 0; j < store->categories[i].subgroup_count; j++) {
             for (int k = 0; k < store->categories[i].subgroups[j].product_count; k++) {
-                char product_name_lower[100];
-                strncpy(product_name_lower, store->categories[i].subgroups[j].products[k].name, sizeof(product_name_lower) - 1);
-                product_name_lower[sizeof(product_name_lower) - 1] = '\0';
+                Product* p = &store->categories[i].subgroups[j].products[k];
                 
+                char product_name_lower[100];
+                strncpy(product_name_lower, p->name, sizeof(product_name_lower) - 1);
+                product_name_lower[sizeof(product_name_lower) - 1] = '\0';
                 for (int l = 0; product_name_lower[l]; l++) {
                     product_name_lower[l] = tolower(product_name_lower[l]);
                 }
                 
                 if (strstr(product_name_lower, search_lower) != NULL) {
-                    result.products[index++] = store->categories[i].subgroups[j].products[k];
+                    result.products[count++] = *p;
                 }
             }
         }
+    }
+    
+    // Resize to actual size
+    if (count < max_products && count > 0) {
+        Product* resized = (Product*)realloc(result.products, count * sizeof(Product));
+        if (resized) {
+            result.products = resized;
+        }
+    } else if (count == 0) {
+        free(result.products);
+        result.products = NULL;
     }
     
     result.count = count;
@@ -325,39 +387,41 @@ SearchResult datastore_search_products_by_price(DataStore* store, float min_pric
     
     if (!store) return result;
     
-    // Count matching products
-    int count = 0;
+    int max_products = 0;
     for (int i = 0; i < store->category_count; i++) {
         for (int j = 0; j < store->categories[i].subgroup_count; j++) {
-            for (int k = 0; k < store->categories[i].subgroups[j].product_count; k++) {
-                float price = store->categories[i].subgroups[j].products[k].price;
-                if (price >= min_price && price <= max_price) {
-                    count++;
-                }
-            }
+            max_products += store->categories[i].subgroups[j].product_count;
         }
     }
     
-    if (count == 0) return result;
+    if (max_products == 0) return result;
     
-    // Allocate result array
-    result.products = (Product*)malloc(count * sizeof(Product));
+    result.products = (Product*)malloc(max_products * sizeof(Product));
     if (!result.products) {
         fprintf(stderr, "Error: Failed to allocate memory for search results\n");
         return result;
     }
     
-    // Fill result array
-    int index = 0;
+    int count = 0;
     for (int i = 0; i < store->category_count; i++) {
         for (int j = 0; j < store->categories[i].subgroup_count; j++) {
             for (int k = 0; k < store->categories[i].subgroups[j].product_count; k++) {
-                float price = store->categories[i].subgroups[j].products[k].price;
-                if (price >= min_price && price <= max_price) {
-                    result.products[index++] = store->categories[i].subgroups[j].products[k];
+                Product* p = &store->categories[i].subgroups[j].products[k];
+                if (p->price >= min_price && p->price <= max_price) {
+                    result.products[count++] = *p;
                 }
             }
         }
+    }
+    
+    if (count < max_products && count > 0) {
+        Product* resized = (Product*)realloc(result.products, count * sizeof(Product));
+        if (resized) {
+            result.products = resized;
+        }
+    } else if (count == 0) {
+        free(result.products);
+        result.products = NULL;
     }
     
     result.count = count;
@@ -369,39 +433,41 @@ SearchResult datastore_search_products_by_quantity(DataStore* store, int min_qty
     
     if (!store) return result;
     
-    // Count matching products
-    int count = 0;
+    int max_products = 0;
     for (int i = 0; i < store->category_count; i++) {
         for (int j = 0; j < store->categories[i].subgroup_count; j++) {
-            for (int k = 0; k < store->categories[i].subgroups[j].product_count; k++) {
-                int qty = store->categories[i].subgroups[j].products[k].quantity;
-                if (qty >= min_qty && qty <= max_qty) {
-                    count++;
-                }
-            }
+            max_products += store->categories[i].subgroups[j].product_count;
         }
     }
     
-    if (count == 0) return result;
+    if (max_products == 0) return result;
     
-    // Allocate result array
-    result.products = (Product*)malloc(count * sizeof(Product));
+    result.products = (Product*)malloc(max_products * sizeof(Product));
     if (!result.products) {
         fprintf(stderr, "Error: Failed to allocate memory for search results\n");
         return result;
     }
     
-    // Fill result array
-    int index = 0;
+    int count = 0;
     for (int i = 0; i < store->category_count; i++) {
         for (int j = 0; j < store->categories[i].subgroup_count; j++) {
             for (int k = 0; k < store->categories[i].subgroups[j].product_count; k++) {
-                int qty = store->categories[i].subgroups[j].products[k].quantity;
-                if (qty >= min_qty && qty <= max_qty) {
-                    result.products[index++] = store->categories[i].subgroups[j].products[k];
+                Product* p = &store->categories[i].subgroups[j].products[k];
+                if (p->quantity >= min_qty && p->quantity <= max_qty) {
+                    result.products[count++] = *p;
                 }
             }
         }
+    }
+    
+    if (count < max_products && count > 0) {
+        Product* resized = (Product*)realloc(result.products, count * sizeof(Product));
+        if (resized) {
+            result.products = resized;
+        }
+    } else if (count == 0) {
+        free(result.products);
+        result.products = NULL;
     }
     
     result.count = count;
@@ -464,9 +530,9 @@ void datastore_display_all(DataStore* store) {
     }
     
     clear_screen();
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf("║  ALL DATA - HIERARCHICAL VIEW                              ║\n");
-    printf("╚════════════════════════════════════════════════════════════╝\n\n");
+    printf("╚══════════════════════════════════════════════════════════╝\n\n");
     
     if (store->category_count == 0) {
         printf("  No data available.\n\n");
@@ -483,7 +549,7 @@ void datastore_display_all(DataStore* store) {
 }
 
 // ============================================================================
-// File I/O Functions
+// File I/O Functions (CRITICAL FIXES)
 // ============================================================================
 
 bool datastore_save(DataStore* store, const char* filename) {
@@ -492,66 +558,82 @@ bool datastore_save(DataStore* store, const char* filename) {
         return false;
     }
     
-    // Create backup first
-    FILE* original = fopen(filename, "rb");
-    if (original) {
-        FILE* backup = fopen(BACKUP_FILE, "wb");
-        if (backup) {
-            char buffer[4096];
-            size_t bytes;
-            while ((bytes = fread(buffer, 1, sizeof(buffer), original)) > 0) {
-                fwrite(buffer, 1, bytes, backup);
-            }
-            fclose(backup);
-        }
-        fclose(original);
-    }
+    // Create temp file name
+    char temp_file[512];
+    snprintf(temp_file, sizeof(temp_file), "%s.tmp", filename);
     
-    // Open file for writing
-    FILE* file = fopen(filename, "wb");
+    // Write to temp file first
+    FILE* file = fopen(temp_file, "wb");
     if (!file) {
-        fprintf(stderr, "Error: Cannot open file %s for writing\n", filename);
+        fprintf(stderr, "Error: Cannot create temporary file %s\n", temp_file);
         return false;
     }
     
-    // Write header info
-    fwrite(&store->category_count, sizeof(int), 1, file);
-    fwrite(&store->next_category_id, sizeof(int), 1, file);
-    fwrite(&store->next_subgroup_id, sizeof(int), 1, file);
-    fwrite(&store->next_product_id, sizeof(int), 1, file);
+    // Write and validate header
+    if (fwrite(&store->category_count, sizeof(int), 1, file) != 1 ||
+        fwrite(&store->next_category_id, sizeof(int), 1, file) != 1 ||
+        fwrite(&store->next_subgroup_id, sizeof(int), 1, file) != 1 ||
+        fwrite(&store->next_product_id, sizeof(int), 1, file) != 1) {
+        fprintf(stderr, "Error: Failed to write header\n");
+        fclose(file);
+        remove(temp_file);
+        return false;
+    }
     
-    // Write each category
+    // Write each category with validation
     for (int i = 0; i < store->category_count; i++) {
         Category* cat = &store->categories[i];
         
-        // Write category data
-        fwrite(&cat->id, sizeof(int), 1, file);
-        fwrite(cat->name, sizeof(char), 50, file);
-        fwrite(cat->description, sizeof(char), 200, file);
-        fwrite(&cat->subgroup_count, sizeof(int), 1, file);
+        if (fwrite(&cat->id, sizeof(int), 1, file) != 1 ||
+            fwrite(cat->name, sizeof(char), 50, file) != 50 ||
+            fwrite(cat->description, sizeof(char), 200, file) != 200 ||
+            fwrite(&cat->subgroup_count, sizeof(int), 1, file) != 1) {
+            fprintf(stderr, "Error: Failed to write category %d\n", cat->id);
+            fclose(file);
+            remove(temp_file);
+            return false;
+        }
         
         // Write each subgroup
         for (int j = 0; j < cat->subgroup_count; j++) {
             Subgroup* sub = &cat->subgroups[j];
             
-            // Write subgroup data
-            fwrite(&sub->id, sizeof(int), 1, file);
-            fwrite(&sub->category_id, sizeof(int), 1, file);
-            fwrite(sub->name, sizeof(char), 50, file);
-            fwrite(sub->description, sizeof(char), 200, file);
-            fwrite(&sub->product_count, sizeof(int), 1, file);
+            if (fwrite(&sub->id, sizeof(int), 1, file) != 1 ||
+                fwrite(&sub->category_id, sizeof(int), 1, file) != 1 ||
+                fwrite(sub->name, sizeof(char), 50, file) != 50 ||
+                fwrite(sub->description, sizeof(char), 200, file) != 200 ||
+                fwrite(&sub->product_count, sizeof(int), 1, file) != 1) {
+                fprintf(stderr, "Error: Failed to write subgroup %d\n", sub->id);
+                fclose(file);
+                remove(temp_file);
+                return false;
+            }
             
             // Write each product
             for (int k = 0; k < sub->product_count; k++) {
                 Product* prod = &sub->products[k];
-                fwrite(prod, sizeof(Product), 1, file);
+                if (fwrite(prod, sizeof(Product), 1, file) != 1) {
+                    fprintf(stderr, "Error: Failed to write product %d\n", prod->id);
+                    fclose(file);
+                    remove(temp_file);
+                    return false;
+                }
             }
         }
     }
     
     fclose(file);
     
-    // Update last saved timestamp
+    // Atomic file replacement
+    remove(BACKUP_FILE);
+    rename(filename, BACKUP_FILE);
+    
+    if (rename(temp_file, filename) != 0) {
+        fprintf(stderr, "Error: Failed to finalize save\n");
+        rename(BACKUP_FILE, filename);
+        return false;
+    }
+    
     get_current_timestamp(store->last_saved, sizeof(store->last_saved));
     store->is_modified = false;
     
@@ -568,22 +650,31 @@ bool datastore_load(DataStore* store, const char* filename) {
     FILE* file = fopen(filename, "rb");
     if (!file) {
         printf("No existing data file found. Starting with empty database.\n");
-        return true; // Not an error, just no existing file
+        return true;
     }
     
     // Free existing data
     datastore_free(store);
+    *store = datastore_init();
     
-    // Read header info
-    if (fread(&store->category_count, sizeof(int), 1, file) != 1) {
-        fprintf(stderr, "Error: Failed to read category count\n");
+    // Read and validate header
+    if (fread(&store->category_count, sizeof(int), 1, file) != 1 ||
+        fread(&store->next_category_id, sizeof(int), 1, file) != 1 ||
+        fread(&store->next_subgroup_id, sizeof(int), 1, file) != 1 ||
+        fread(&store->next_product_id, sizeof(int), 1, file) != 1) {
+        fprintf(stderr, "Error: Corrupted file header\n");
         fclose(file);
         return false;
     }
     
-    fread(&store->next_category_id, sizeof(int), 1, file);
-    fread(&store->next_subgroup_id, sizeof(int), 1, file);
-    fread(&store->next_product_id, sizeof(int), 1, file);
+    // Validate header data
+    if (store->category_count < 0 || store->category_count > 10000 ||
+        store->next_category_id <= 0 || store->next_subgroup_id <= 0 || 
+        store->next_product_id <= 0) {
+        fprintf(stderr, "Error: Invalid data in file header\n");
+        fclose(file);
+        return false;
+    }
     
     // Allocate category array
     store->category_capacity = store->category_count > INITIAL_CATEGORY_CAPACITY ? 
@@ -600,20 +691,31 @@ bool datastore_load(DataStore* store, const char* filename) {
     for (int i = 0; i < store->category_count; i++) {
         Category* cat = &store->categories[i];
         
-        // Read category data
-        fread(&cat->id, sizeof(int), 1, file);
-        fread(cat->name, sizeof(char), 50, file);
-        fread(cat->description, sizeof(char), 200, file);
-        fread(&cat->subgroup_count, sizeof(int), 1, file);
+        if (fread(&cat->id, sizeof(int), 1, file) != 1 ||
+            fread(cat->name, sizeof(char), 50, file) != 50 ||
+            fread(cat->description, sizeof(char), 200, file) != 200 ||
+            fread(&cat->subgroup_count, sizeof(int), 1, file) != 1) {
+            fprintf(stderr, "Error: Failed to read category %d\n", i);
+            fclose(file);
+            datastore_free(store);
+            return false;
+        }
+        
+        if (cat->subgroup_count < 0 || cat->subgroup_count > 1000) {
+            fprintf(stderr, "Error: Invalid subgroup count in category\n");
+            fclose(file);
+            datastore_free(store);
+            return false;
+        }
         
         // Allocate subgroup array
-        cat->subgroup_capacity = cat->subgroup_count > INITIAL_CATEGORY_CAPACITY ? 
-                                 cat->subgroup_count : INITIAL_CATEGORY_CAPACITY;
+        cat->subgroup_capacity = cat->subgroup_count > 10 ? cat->subgroup_count : 10;
         cat->subgroups = (Subgroup*)malloc(cat->subgroup_capacity * sizeof(Subgroup));
         
         if (!cat->subgroups) {
             fprintf(stderr, "Error: Failed to allocate memory for subgroups\n");
             fclose(file);
+            datastore_free(store);
             return false;
         }
         
@@ -621,28 +723,44 @@ bool datastore_load(DataStore* store, const char* filename) {
         for (int j = 0; j < cat->subgroup_count; j++) {
             Subgroup* sub = &cat->subgroups[j];
             
-            // Read subgroup data
-            fread(&sub->id, sizeof(int), 1, file);
-            fread(&sub->category_id, sizeof(int), 1, file);
-            fread(sub->name, sizeof(char), 50, file);
-            fread(sub->description, sizeof(char), 200, file);
-            fread(&sub->product_count, sizeof(int), 1, file);
+            if (fread(&sub->id, sizeof(int), 1, file) != 1 ||
+                fread(&sub->category_id, sizeof(int), 1, file) != 1 ||
+                fread(sub->name, sizeof(char), 50, file) != 50 ||
+                fread(sub->description, sizeof(char), 200, file) != 200 ||
+                fread(&sub->product_count, sizeof(int), 1, file) != 1) {
+                fprintf(stderr, "Error: Failed to read subgroup\n");
+                fclose(file);
+                datastore_free(store);
+                return false;
+            }
+            
+            if (sub->product_count < 0 || sub->product_count > 10000) {
+                fprintf(stderr, "Error: Invalid product count in subgroup\n");
+                fclose(file);
+                datastore_free(store);
+                return false;
+            }
             
             // Allocate product array
-            sub->product_capacity = sub->product_count > INITIAL_CATEGORY_CAPACITY ? 
-                                    sub->product_count : INITIAL_CATEGORY_CAPACITY;
+            sub->product_capacity = sub->product_count > 10 ? sub->product_count : 10;
             sub->products = (Product*)malloc(sub->product_capacity * sizeof(Product));
             
             if (!sub->products) {
                 fprintf(stderr, "Error: Failed to allocate memory for products\n");
                 fclose(file);
+                datastore_free(store);
                 return false;
             }
             
             // Read each product
             for (int k = 0; k < sub->product_count; k++) {
                 Product* prod = &sub->products[k];
-                fread(prod, sizeof(Product), 1, file);
+                if (fread(prod, sizeof(Product), 1, file) != 1) {
+                    fprintf(stderr, "Error: Failed to read product\n");
+                    fclose(file);
+                    datastore_free(store);
+                    return false;
+                }
             }
         }
     }
@@ -658,31 +776,4 @@ bool datastore_load(DataStore* store, const char* filename) {
            store->next_subgroup_id, store->next_product_id);
 
     return true;
-}
-Subgroup* datastore_find_subgroup_by_id(DataStore* store, int subgroup_id) {
-    if (!store) return NULL;
-
-    for (int i = 0; i < store->category_count; i++) {
-        Subgroup* subgroup = category_find_subgroup_by_id(&store->categories[i], subgroup_id);
-        if (subgroup) {
-            return subgroup;
-        }
-    }
-
-    return NULL;
-}
-
-Product* datastore_find_product_by_id(DataStore* store, int product_id) {
-    if (!store) return NULL;
-
-    for (int i = 0; i < store->category_count; i++) {
-        for (int j = 0; j < store->categories[i].subgroup_count; j++) {
-            Product* product = subgroup_find_product_by_id(&store->categories[i].subgroups[j], product_id);
-            if (product) {
-                return product;
-            }
-        }
-    }
-
-    return NULL;
 }

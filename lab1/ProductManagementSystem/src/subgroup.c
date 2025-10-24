@@ -1,10 +1,3 @@
-/**
- * @file subgroup.c
- * @brief Subgroup management implementation
- * @author PMS Team
- * @date 2025
- * @compatible Dev-C++ 6.3, TDM-GCC 9.2.0, C11
- */
 
 #include "../include/subgroup.h"
 #include <stdlib.h>
@@ -98,9 +91,26 @@ bool subgroup_add_product(Subgroup* subgroup, Product product) {
     return true;
 }
 
+/**
+ * ✅ FIXED: Use swap-and-pop method for O(1) removal
+ * 
+ * OLD METHOD:
+ * - Shifted all elements left (O(n))
+ * - Unnecessary work for removing one element
+ * 
+ * NEW METHOD:
+ * - Swap with last element (O(1))
+ * - Order doesn't matter for our use case
+ * - Much faster for large arrays
+ */
 bool subgroup_remove_product(Subgroup* subgroup, int product_id) {
     if (!subgroup) {
         fprintf(stderr, "Error: Subgroup pointer is NULL\n");
+        return false;
+    }
+    
+    if (subgroup->product_count <= 0) {
+        fprintf(stderr, "Error: Subgroup has no products\n");
         return false;
     }
     
@@ -118,12 +128,16 @@ bool subgroup_remove_product(Subgroup* subgroup, int product_id) {
         return false;
     }
     
-    // Shift products left to fill gap
-    for (int i = index; i < subgroup->product_count - 1; i++) {
-        subgroup->products[i] = subgroup->products[i + 1];
+    // ✅ FIX: Swap with last element (O(1) instead of O(n))
+    int last_index = subgroup->product_count - 1;
+    if (index < last_index) {
+        // Move last product to the removed position
+        subgroup->products[index] = subgroup->products[last_index];
     }
     
+    // Decrease count (effectively removing the last element)
     subgroup->product_count--;
+    
     return true;
 }
 
@@ -147,9 +161,9 @@ void subgroup_display(const Subgroup* subgroup) {
         return;
     }
     
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
     printf("║  Subgroup Information                                      ║\n");
-    printf("╚════════════════════════════════════════════════════════════╝\n");
+    printf("╚══════════════════════════════════════════════════════════╝\n");
     printf("  ID:          %d\n", subgroup->id);
     printf("  Category ID: %d\n", subgroup->category_id);
     printf("  Name:        %s\n", subgroup->name);
@@ -162,7 +176,7 @@ void subgroup_display(const Subgroup* subgroup) {
         for (int i = 0; i < subgroup->product_count; i++) {
             product_display_table_row(&subgroup->products[i]);
         }
-        printf("  ────────────────────────────────────────────────────────────────────────────────\n");
+        printf("  ────────────────────────────────────────────────────────────────────────────\n");
     }
     printf("\n");
 }
