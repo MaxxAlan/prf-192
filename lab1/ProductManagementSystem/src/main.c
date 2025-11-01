@@ -136,10 +136,10 @@ int main(void) {
 
 void display_main_menu(void) {
     printf("\n╔══════════════════════════════════════════════════════════╗\n");
-    printf  ("║        PRODUCT MANAGEMENT SYSTEM v1.0                      ║\n");
-    printf  ("║        Run with Win11 & Dev-C++ 6.3                        ║\n");
-    printf  ("║        -> Group 3-PRF192:Lab1                              ║\n");
-    printf  ("║    Member: Manh, Khoa, Tuan Anh, Phuong Anh, Thu Phuong    ║\n");
+    printf  ("║        PRODUCT MANAGEMENT SYSTEM v1.0                    ║\n");
+    printf  ("║        Run with Win11 & Dev-C++ 6.3                      ║\n");
+    printf  ("║        -> Group 3-PRF192:Lab1                            ║\n");
+    printf  ("║    Member: Manh, Khoa, Tuan Anh, Phuong Anh, Thu Phuong  ║\n");
     printf  ("╚══════════════════════════════════════════════════════════╝\n\n");
     printf("  [1] Category Management\n");
     printf("  [2] Subgroup Management\n");
