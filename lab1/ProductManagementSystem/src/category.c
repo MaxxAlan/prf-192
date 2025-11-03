@@ -89,18 +89,6 @@ bool category_add_subgroup(Category* category, Subgroup subgroup) {
     return true;
 }
 
-/**
- * ✅ FIXED: Properly handle memory when removing subgroup
- * 
- * OLD BUG: 
- * - Called subgroup_free() then copied freed pointer
- * - Resulted in dangling pointer
- * 
- * NEW SOLUTION:
- * - Use swap-and-pop method (O(1) instead of O(n))
- * - Free only the removed subgroup
- * - No memory leaks, no dangling pointers
- */
 bool category_remove_subgroup(Category* category, int subgroup_id) {
     if (!category) {
         fprintf(stderr, "Error: Category pointer is NULL\n");
@@ -126,18 +114,15 @@ bool category_remove_subgroup(Category* category, int subgroup_id) {
         return false;
     }
     
-    // ✅ FIX: Free the subgroup to be removed
+    // Free the subgroup to be removed
     subgroup_free(&category->subgroups[index]);
     
-    // ✅ FIX: Swap with last element (O(1) operation)
-    // This avoids shifting all elements left
+    // Swap with last element (O(1) operation)
     int last_index = category->subgroup_count - 1;
     if (index < last_index) {
-        // Move last subgroup to the removed position
         category->subgroups[index] = category->subgroups[last_index];
     }
     
-    // Decrease count (effectively removing the last element)
     category->subgroup_count--;
     
     return true;
@@ -164,8 +149,8 @@ void category_display(const Category* category) {
     }
     
     printf("\n╔══════════════════════════════════════════════════════════╗\n");
-    printf("║  Category Information                                      ║\n");
-    printf("╚══════════════════════════════════════════════════════════╝\n");
+    printf(  "║  Category Information                                    ║\n");
+    printf(  "╚══════════════════════════════════════════════════════════╝\n");
     printf("  ID:          %d\n", category->id);
     printf("  Name:        %s\n", category->name);
     printf("  Description: %s\n", category->description);
@@ -177,7 +162,7 @@ void category_display(const Category* category) {
         for (int i = 0; i < category->subgroup_count; i++) {
             subgroup_display_table_row(&category->subgroups[i]);
         }
-        printf("  └────────┴──────────────┴──────────────────────────────────────────┴──────────┘\n");
+        subgroup_display_table_footer();
         
         // Display products in each subgroup
         for (int i = 0; i < category->subgroup_count; i++) {
@@ -189,7 +174,7 @@ void category_display(const Category* category) {
                 for (int j = 0; j < category->subgroups[i].product_count; j++) {
                     product_display_table_row(&category->subgroups[i].products[j]);
                 }
-                printf("  ────────────────────────────────────────────────────────────────────────────\n");
+                product_display_table_footer();
             }
         }
     }
@@ -198,17 +183,21 @@ void category_display(const Category* category) {
 
 void category_display_table_header(void) {
     printf("  ┌────────┬──────────────────────────────────────────────────┬───────────┐\n");
-    printf("  │   ID   │ Category Name                                  │ Subgroups │\n");
+    printf("  │   ID   │ Category Name                                    │ Subgroups │\n");
     printf("  ├────────┼──────────────────────────────────────────────────┼───────────┤\n");
 }
 
 void category_display_table_row(const Category* category) {
     if (!category) return;
     
-    printf("  │ %-6d │ %-46s │ %-9d │\n",
+    printf("  │ %-6d │ %-48s │ %-9d │\n",
            category->id,
            category->name,
            category->subgroup_count);
+}
+
+void category_display_table_footer(void) {
+    printf("  └────────┴──────────────────────────────────────────────────┴───────────┘\n");
 }
 
 bool category_update_name(Category* category, const char* name) {

@@ -1,6 +1,6 @@
 /**
  * @file product.c
- * @brief Product management implementation
+ * @brief Product management implementation (FIXED UI)
  * @author PMS Team
  * @date 2025
  * @compatible Dev-C++ 6.3, TDM-GCC 9.2.0, C11
@@ -9,6 +9,7 @@
 #include "../include/product.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <time.h>
 
 /**
@@ -85,9 +86,9 @@ void product_display(const Product* product) {
         return;
     }
     
-    printf("\n╔════════════════════════════════════════════════════════════╗\n");
-    printf("║  Product Information                                       ║\n");
-    printf("╚════════════════════════════════════════════════════════════╝\n");
+    printf("\n╔══════════════════════════════════════════════════════════╗\n");
+    printf(  "║   Product Information                                    ║\n");
+    printf(  "╚══════════════════════════════════════════════════════════╝\n");
     printf("  ID:          %d\n", product->id);
     printf("  Subgroup ID: %d\n", product->subgroup_id);
     printf("  Code:        %s\n", product->code);
@@ -102,9 +103,9 @@ void product_display(const Product* product) {
 }
 
 void product_display_table_header(void) {
-    printf("  ┌────────┬──────────┬────────────┬──────────────────────┬──────────┬──────────┐\n");
-    printf("  │   ID   │ Sub ID   │ Code       │ Name                 │  Price   │ Quantity │\n");
-    printf("  ├────────┼──────────┼────────────┼──────────────────────┼──────────┼──────────┤\n");
+    printf("  ┌────────┬──────────┬────────────┬──────────────────────┬──────────────┬──────────┐\n");
+    printf("  │   ID   │ Sub ID   │ Code       │ Name                 │    Price     │ Quantity │\n");
+    printf("  ├────────┼──────────┼────────────┼──────────────────────┼──────────────┼──────────┤\n");
 }
 
 void product_display_table_row(const Product* product) {
@@ -121,13 +122,17 @@ void product_display_table_row(const Product* product) {
         display_name[20] = '\0';
     }
     
-    printf("  │ %-6d │ %-8d │ %-10s │ %-20s │ $%-7.2f │ %-8d │\n",
+    printf("  │ %-6d │ %-8d │ %-10s │ %-20s │ $%11.2f │ %-8d │\n",
            product->id,
            product->subgroup_id,
            product->code,
            display_name,
            product->price,
            product->quantity);
+}
+
+void product_display_table_footer(void) {
+    printf("  └────────┴──────────┴────────────┴──────────────────────┴──────────────┴──────────┘\n");
 }
 
 bool product_update_code(Product* product, const char* code) {

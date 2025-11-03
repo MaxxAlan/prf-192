@@ -58,6 +58,11 @@ void product_display_table_header(void);
 void product_display_table_row(const Product* product);
 
 /**
+ * @brief Display product table footer
+ */
+void product_display_table_footer(void);
+
+/**
  * @brief Update product code
  * @param product Pointer to product
  * @param code New code

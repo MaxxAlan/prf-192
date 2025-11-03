@@ -75,6 +75,11 @@ void category_display_table_header(void);
 void category_display_table_row(const Category* category);
 
 /**
+ * @brief Display category table footer
+ */
+void category_display_table_footer(void);
+
+/**
  * @brief Update category name
  * @param category Pointer to category
  * @param name New name

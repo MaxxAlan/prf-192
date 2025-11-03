@@ -1,17 +1,9 @@
 /**
  * @file utils.c
- * @brief Utility functions and DataStore implementation (FIXED - COMPLETE)
+ * @brief Utility functions and DataStore implementation (FIXED & COMPLETE)
  * @author PMS Team
  * @date 2025
  * @compatible Dev-C++ 6.3, TDM-GCC 9.2.0, C11
- * 
- * MAJOR FIXES:
- * - Fixed input buffer handling in safe_input_string()
- * - Fixed pause_screen() double-enter bug
- * - Added error checking in datastore_load()
- * - Improved datastore_save() with atomic write
- * - Optimized search functions (single-pass)
- * - Fixed memory management in remove operations
  */
 
 #include "../include/utils.h"
@@ -22,9 +14,35 @@
 #include <time.h>
 #include <ctype.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #define INITIAL_CATEGORY_CAPACITY 10
 #define DATA_FILE "data/products.dat"
 #define BACKUP_FILE "data/products.bak"
+
+// ============================================================================
+// Color Functions
+// ============================================================================
+
+void set_color(ConsoleColor color) {
+    #ifdef _WIN32
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(hConsole, color);
+    #else
+    // For non-Windows systems, use ANSI codes
+    switch(color) {
+        case COLOR_RESET:   printf("\033[0m"); break;
+        case COLOR_HEADER:  printf("\033[1;36m"); break;
+        case COLOR_SUCCESS: printf("\033[1;32m"); break;
+        case COLOR_ERROR:   printf("\033[1;31m"); break;
+        case COLOR_WARNING: printf("\033[1;33m"); break;
+        case COLOR_INPUT:   printf("\033[1;37m"); break;
+        case COLOR_INFO:    printf("\033[1;34m"); break;
+    }
+    #endif
+}
 
 // ============================================================================
 // Helper Functions
@@ -62,12 +80,13 @@ void get_current_timestamp(char* buffer, size_t size) {
 }
 
 void clear_screen(void) {
+    #ifdef _WIN32
     system("cls");
+    #else
+    system("clear");
+    #endif
 }
 
-/**
- * ✅ FIXED: Pause screen now works correctly
- */
 void pause_screen(void) {
     printf("\nPress Enter to continue...");
     fflush(stdout);
@@ -83,9 +102,6 @@ void pause_screen(void) {
     }
 }
 
-/**
- * ✅ FIXED: Input buffer handling
- */
 bool safe_input_string(const char* prompt, char* buffer, size_t size) {
     if (!buffer || size == 0) return false;
     
@@ -131,7 +147,9 @@ bool safe_input_int(const char* prompt, int* value) {
     long result = strtol(buffer, &endptr, 10);
     
     if (*endptr != '\0' || endptr == buffer) {
-        fprintf(stderr, "Error: Invalid integer input\n");
+        set_color(COLOR_ERROR);
+        fprintf(stderr, "✗ Error: Invalid integer input\n");
+        set_color(COLOR_RESET);
         return false;
     }
     
@@ -157,7 +175,9 @@ bool safe_input_float(const char* prompt, float* value) {
     float result = strtof(buffer, &endptr);
     
     if (*endptr != '\0' || endptr == buffer) {
-        fprintf(stderr, "Error: Invalid float input\n");
+        set_color(COLOR_ERROR);
+        fprintf(stderr, "✗ Error: Invalid float input\n");
+        set_color(COLOR_RESET);
         return false;
     }
     
@@ -525,31 +545,82 @@ Statistics datastore_get_statistics(DataStore* store) {
 
 void datastore_display_all(DataStore* store) {
     if (!store) {
+        set_color(COLOR_ERROR);
         printf("Error: DataStore pointer is NULL\n");
+        set_color(COLOR_RESET);
         return;
     }
     
     clear_screen();
+    set_color(COLOR_HEADER);
     printf("\n╔══════════════════════════════════════════════════════════╗\n");
-    printf("║  ALL DATA - HIERARCHICAL VIEW                              ║\n");
+    printf("║              ALL DATA - HIERARCHICAL VIEW                ║\n");
     printf("╚══════════════════════════════════════════════════════════╝\n\n");
+    set_color(COLOR_RESET);
     
     if (store->category_count == 0) {
         printf("  No data available.\n\n");
         return;
     }
     
+    set_color(COLOR_INFO);
     printf("  Total Categories: %d\n", store->category_count);
-    printf("  Last Saved: %s\n", store->last_saved);
+    printf("  Last Saved: %s\n", store->last_saved ? store->last_saved : "Not saved yet");
     printf("  Modified: %s\n\n", store->is_modified ? "Yes" : "No");
+    set_color(COLOR_RESET);
     
     for (int i = 0; i < store->category_count; i++) {
-        category_display(&store->categories[i]);
+        Category* cat = &store->categories[i];
+        
+        set_color(COLOR_HEADER);
+        printf("╔══════════════════════════════════════════════════════════╗\n");
+        printf("║ Category: %-47s║\n", cat->name);
+        printf("║ ID: %-52d ║\n", cat->id);
+        printf("╚══════════════════════════════════════════════════════════╝\n");
+        set_color(COLOR_RESET);
+        printf("  Description: %s\n", cat->description);
+        printf("  Subgroups: %d\n\n", cat->subgroup_count);
+        
+        if (cat->subgroup_count > 0) {
+            printf("  Subgroups in this category:\n");
+            subgroup_display_table_header();
+            for (int j = 0; j < cat->subgroup_count; j++) {
+                subgroup_display_table_row(&cat->subgroups[j]);
+            }
+            subgroup_display_table_footer();
+            printf("\n");
+        } else {
+            set_color(COLOR_WARNING);
+            printf("  No subgroups in this category.\n\n");
+            set_color(COLOR_RESET);
+        }
+        
+        for (int j = 0; j < cat->subgroup_count; j++) {
+            Subgroup* sub = &cat->subgroups[j];
+            set_color(COLOR_INFO);
+            printf("  ► Subgroup: %s (ID: %d)\n", sub->name, sub->id);
+            set_color(COLOR_RESET);
+            printf("    Description: %s\n", sub->description);
+            printf("    Products: %d\n\n", sub->product_count);
+            
+            if (sub->product_count > 0) {
+                product_display_table_header();
+                for (int k = 0; k < sub->product_count; k++) {
+                    product_display_table_row(&sub->products[k]);
+                }
+                product_display_table_footer();
+                printf("\n");
+            } else {
+                set_color(COLOR_WARNING);
+                printf("    No products in this subgroup.\n\n");
+                set_color(COLOR_RESET);
+            }
+        }
     }
 }
 
 // ============================================================================
-// File I/O Functions (CRITICAL FIXES)
+// File I/O Functions (COMPLETE)
 // ============================================================================
 
 bool datastore_save(DataStore* store, const char* filename) {
@@ -565,7 +636,9 @@ bool datastore_save(DataStore* store, const char* filename) {
     // Write to temp file first
     FILE* file = fopen(temp_file, "wb");
     if (!file) {
+        set_color(COLOR_ERROR);
         fprintf(stderr, "Error: Cannot create temporary file %s\n", temp_file);
+        set_color(COLOR_RESET);
         return false;
     }
     
@@ -574,7 +647,9 @@ bool datastore_save(DataStore* store, const char* filename) {
         fwrite(&store->next_category_id, sizeof(int), 1, file) != 1 ||
         fwrite(&store->next_subgroup_id, sizeof(int), 1, file) != 1 ||
         fwrite(&store->next_product_id, sizeof(int), 1, file) != 1) {
+        set_color(COLOR_ERROR);
         fprintf(stderr, "Error: Failed to write header\n");
+        set_color(COLOR_RESET);
         fclose(file);
         remove(temp_file);
         return false;
@@ -588,7 +663,9 @@ bool datastore_save(DataStore* store, const char* filename) {
             fwrite(cat->name, sizeof(char), 50, file) != 50 ||
             fwrite(cat->description, sizeof(char), 200, file) != 200 ||
             fwrite(&cat->subgroup_count, sizeof(int), 1, file) != 1) {
+            set_color(COLOR_ERROR);
             fprintf(stderr, "Error: Failed to write category %d\n", cat->id);
+            set_color(COLOR_RESET);
             fclose(file);
             remove(temp_file);
             return false;
@@ -603,7 +680,9 @@ bool datastore_save(DataStore* store, const char* filename) {
                 fwrite(sub->name, sizeof(char), 50, file) != 50 ||
                 fwrite(sub->description, sizeof(char), 200, file) != 200 ||
                 fwrite(&sub->product_count, sizeof(int), 1, file) != 1) {
+                set_color(COLOR_ERROR);
                 fprintf(stderr, "Error: Failed to write subgroup %d\n", sub->id);
+                set_color(COLOR_RESET);
                 fclose(file);
                 remove(temp_file);
                 return false;
@@ -613,7 +692,9 @@ bool datastore_save(DataStore* store, const char* filename) {
             for (int k = 0; k < sub->product_count; k++) {
                 Product* prod = &sub->products[k];
                 if (fwrite(prod, sizeof(Product), 1, file) != 1) {
+                    set_color(COLOR_ERROR);
                     fprintf(stderr, "Error: Failed to write product %d\n", prod->id);
+                    set_color(COLOR_RESET);
                     fclose(file);
                     remove(temp_file);
                     return false;
@@ -629,7 +710,9 @@ bool datastore_save(DataStore* store, const char* filename) {
     rename(filename, BACKUP_FILE);
     
     if (rename(temp_file, filename) != 0) {
+        set_color(COLOR_ERROR);
         fprintf(stderr, "Error: Failed to finalize save\n");
+        set_color(COLOR_RESET);
         rename(BACKUP_FILE, filename);
         return false;
     }
@@ -637,7 +720,9 @@ bool datastore_save(DataStore* store, const char* filename) {
     get_current_timestamp(store->last_saved, sizeof(store->last_saved));
     store->is_modified = false;
     
-    printf("Data saved successfully to %s\n", filename);
+    set_color(COLOR_SUCCESS);
+    printf("✓ Data saved successfully to %s\n", filename);
+    set_color(COLOR_RESET);
     return true;
 }
 
@@ -649,7 +734,9 @@ bool datastore_load(DataStore* store, const char* filename) {
     
     FILE* file = fopen(filename, "rb");
     if (!file) {
-        printf("No existing data file found. Starting with empty database.\n");
+        set_color(COLOR_INFO);
+        printf("ℹ No existing data file found. Starting with empty database.\n");
+        set_color(COLOR_RESET);
         return true;
     }
     
@@ -662,7 +749,9 @@ bool datastore_load(DataStore* store, const char* filename) {
         fread(&store->next_category_id, sizeof(int), 1, file) != 1 ||
         fread(&store->next_subgroup_id, sizeof(int), 1, file) != 1 ||
         fread(&store->next_product_id, sizeof(int), 1, file) != 1) {
-        fprintf(stderr, "Error: Corrupted file header\n");
+        set_color(COLOR_ERROR);
+        fprintf(stderr, "✗ Error: Corrupted file header\n");
+        set_color(COLOR_RESET);
         fclose(file);
         return false;
     }
@@ -671,7 +760,9 @@ bool datastore_load(DataStore* store, const char* filename) {
     if (store->category_count < 0 || store->category_count > 10000 ||
         store->next_category_id <= 0 || store->next_subgroup_id <= 0 || 
         store->next_product_id <= 0) {
-        fprintf(stderr, "Error: Invalid data in file header\n");
+        set_color(COLOR_ERROR);
+        fprintf(stderr, "✗ Error: Invalid data in file header\n");
+        set_color(COLOR_RESET);
         fclose(file);
         return false;
     }
@@ -682,7 +773,9 @@ bool datastore_load(DataStore* store, const char* filename) {
     store->categories = (Category*)malloc(store->category_capacity * sizeof(Category));
     
     if (!store->categories) {
-        fprintf(stderr, "Error: Failed to allocate memory for categories\n");
+        set_color(COLOR_ERROR);
+        fprintf(stderr, "✗ Error: Failed to allocate memory for categories\n");
+        set_color(COLOR_RESET);
         fclose(file);
         return false;
     }
@@ -695,14 +788,18 @@ bool datastore_load(DataStore* store, const char* filename) {
             fread(cat->name, sizeof(char), 50, file) != 50 ||
             fread(cat->description, sizeof(char), 200, file) != 200 ||
             fread(&cat->subgroup_count, sizeof(int), 1, file) != 1) {
-            fprintf(stderr, "Error: Failed to read category %d\n", i);
+            set_color(COLOR_ERROR);
+            fprintf(stderr, "✗ Error: Failed to read category %d\n", i);
+            set_color(COLOR_RESET);
             fclose(file);
             datastore_free(store);
             return false;
         }
         
         if (cat->subgroup_count < 0 || cat->subgroup_count > 1000) {
-            fprintf(stderr, "Error: Invalid subgroup count in category\n");
+            set_color(COLOR_ERROR);
+            fprintf(stderr, "✗ Error: Invalid subgroup count in category\n");
+            set_color(COLOR_RESET);
             fclose(file);
             datastore_free(store);
             return false;
@@ -713,7 +810,9 @@ bool datastore_load(DataStore* store, const char* filename) {
         cat->subgroups = (Subgroup*)malloc(cat->subgroup_capacity * sizeof(Subgroup));
         
         if (!cat->subgroups) {
-            fprintf(stderr, "Error: Failed to allocate memory for subgroups\n");
+            set_color(COLOR_ERROR);
+            fprintf(stderr, "✗ Error: Failed to allocate memory for subgroups\n");
+            set_color(COLOR_RESET);
             fclose(file);
             datastore_free(store);
             return false;
@@ -728,14 +827,18 @@ bool datastore_load(DataStore* store, const char* filename) {
                 fread(sub->name, sizeof(char), 50, file) != 50 ||
                 fread(sub->description, sizeof(char), 200, file) != 200 ||
                 fread(&sub->product_count, sizeof(int), 1, file) != 1) {
-                fprintf(stderr, "Error: Failed to read subgroup\n");
+                set_color(COLOR_ERROR);
+                fprintf(stderr, "✗ Error: Failed to read subgroup %d\n", j);
+                set_color(COLOR_RESET);
                 fclose(file);
                 datastore_free(store);
                 return false;
             }
             
             if (sub->product_count < 0 || sub->product_count > 10000) {
-                fprintf(stderr, "Error: Invalid product count in subgroup\n");
+                set_color(COLOR_ERROR);
+                fprintf(stderr, "✗ Error: Invalid product count in subgroup\n");
+                set_color(COLOR_RESET);
                 fclose(file);
                 datastore_free(store);
                 return false;
@@ -746,7 +849,9 @@ bool datastore_load(DataStore* store, const char* filename) {
             sub->products = (Product*)malloc(sub->product_capacity * sizeof(Product));
             
             if (!sub->products) {
-                fprintf(stderr, "Error: Failed to allocate memory for products\n");
+                set_color(COLOR_ERROR);
+                fprintf(stderr, "✗ Error: Failed to allocate memory for products\n");
+                set_color(COLOR_RESET);
                 fclose(file);
                 datastore_free(store);
                 return false;
@@ -756,7 +861,9 @@ bool datastore_load(DataStore* store, const char* filename) {
             for (int k = 0; k < sub->product_count; k++) {
                 Product* prod = &sub->products[k];
                 if (fread(prod, sizeof(Product), 1, file) != 1) {
-                    fprintf(stderr, "Error: Failed to read product\n");
+                    set_color(COLOR_ERROR);
+                    fprintf(stderr, "✗ Error: Failed to read product %d\n", k);
+                    set_color(COLOR_RESET);
                     fclose(file);
                     datastore_free(store);
                     return false;
@@ -770,10 +877,12 @@ bool datastore_load(DataStore* store, const char* filename) {
     get_current_timestamp(store->last_saved, sizeof(store->last_saved));
     store->is_modified = false;
     
-    printf("Data loaded successfully from %s\n", filename);
-    printf("Categories: %d, Next IDs - Cat: %d, Sub: %d, Prod: %d\n",
+    set_color(COLOR_SUCCESS);
+    printf("✓ Data loaded successfully from %s\n", filename);
+    printf("  Categories: %d, Next IDs: Cat=%d, Sub=%d, Prod=%d\n",
            store->category_count, store->next_category_id,
            store->next_subgroup_id, store->next_product_id);
-
+    set_color(COLOR_RESET);
+    
     return true;
 }

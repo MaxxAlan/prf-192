@@ -1,25 +1,35 @@
 @echo off
-REM Run script for Product Management System
+REM ========================================
+REM Product Management System Launcher
+REM Ensures proper UTF-8 encoding & colors
+REM ========================================
 
-if not exist ProductManagementSystem.exe (
-    echo ERROR: ProductManagementSystem.exe not found!
-    echo Please build the project first using build.bat
-    pause
-    exit /b 1
+REM Set console to UTF-8 encoding
+chcp 65001 >nul
+
+REM Set console size (optional)
+mode con: cols=120 lines=40
+
+REM Clear screen
+cls
+
+echo ========================================
+echo   Product Management System v1.0
+echo   Starting with UTF-8 encoding...
+echo ========================================
+echo.
+
+REM Check if data directory exists
+if not exist "data" (
+    echo [WARNING] Creating data directory...
+    mkdir data
+    echo.
 )
 
-REM Ensure data directory exists
-if not exist data mkdir data
-
-REM Set UTF-8 code page for proper character display
-chcp 65001 >nul 2>nul
-
-cls
-echo Starting Product Management System...
-echo.
-
+REM Run the program
 ProductManagementSystem.exe
 
-echo.
-echo Program terminated.
+REM Restore code page (optional)
+REM chcp 1252 >nul
+
 pause

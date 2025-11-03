@@ -11,7 +11,10 @@
 
 #include "product.h"
 #include <stdbool.h>
-
+/**
+ * @brief Display subgroup table footer
+ */
+void subgroup_display_table_footer(void);
 /**
  * @brief Subgroup structure containing products
  */

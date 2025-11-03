@@ -14,6 +14,26 @@
 #include "category.h"
 
 // ============================================================================
+// Color codes for Windows console
+// ============================================================================
+
+typedef enum {
+    COLOR_RESET = 7,      // Light Gray (default)
+    COLOR_HEADER = 11,    // Cyan
+    COLOR_SUCCESS = 10,   // Green
+    COLOR_ERROR = 12,     // Red
+    COLOR_WARNING = 14,   // Yellow
+    COLOR_INPUT = 15,     // White
+    COLOR_INFO = 9        // Blue
+} ConsoleColor;
+
+/**
+ * @brief Set console text color (Windows)
+ * @param color Color code from ConsoleColor enum
+ */
+void set_color(ConsoleColor color);
+
+// ============================================================================
 // Core types
 // ============================================================================
 
